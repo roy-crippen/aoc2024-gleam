@@ -1,13 +1,15 @@
 import day_01.{solution_day_01}
 import day_02.{solution_day_02}
+import day_03.{solution_day_03}
 import gleam/erlang.{Microsecond, system_time}
 import gleam/int
 import gleam/io
 import gleam/list
+import gleam_community/ansi
 
 import utils.{type Solution}
 
-const sols = [solution_day_01, solution_day_02]
+const sols = [solution_day_01, solution_day_02, solution_day_03]
 
 pub fn main() {
   sols
@@ -20,7 +22,7 @@ pub fn main() {
 }
 
 fn run_solution(sol: Solution) -> String {
-  let day_str = int.to_string(sol.day)
+  let day_str = int.to_string(sol.day) |> ansi.blue
   let part1_str = run_part(sol, True)
   let part2_str = run_part(sol, False)
   day_str <> "  " <> part1_str <> "  " <> part2_str

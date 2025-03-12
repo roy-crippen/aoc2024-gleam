@@ -1,8 +1,3 @@
-import gleam/dict.{type Dict}
-import gleam/int
-import gleam/list
-import gleam/result
-import gleam/string
 import utils.{Solution, read_file}
 
 const expected_part1 = 42
