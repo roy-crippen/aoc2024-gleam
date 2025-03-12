@@ -82,6 +82,18 @@ pub fn map(g: Grid(a), f: fn(a) -> b) -> Grid(b) {
   from_lists(yss)
 }
 
+pub fn apply8(g: Grid(a), pos: Pos, f: fn(Grid(a), Pos) -> b) -> List(b) {
+  [
+    f(g, north(pos)),
+    f(g, north_west(pos)),
+    f(g, west(pos)),
+    f(g, south_west(pos)),
+    f(g, south(pos)),
+    f(g, south_east(pos)),
+    f(g, east(pos)),
+  ]
+}
+
 pub fn show(g: Grid(a)) {
   io.debug("")
   to_lists(g)

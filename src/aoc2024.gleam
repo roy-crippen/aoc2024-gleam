@@ -1,6 +1,7 @@
 import day_01.{solution_day_01}
 import day_02.{solution_day_02}
 import day_03.{solution_day_03}
+import day_04.{solution_day_04}
 import gleam/erlang.{Microsecond, system_time}
 import gleam/int
 import gleam/io
@@ -9,7 +10,12 @@ import gleam_community/ansi
 
 import utils.{type Solution}
 
-const sols = [solution_day_01, solution_day_02, solution_day_03]
+const sols = [
+  solution_day_01,
+  solution_day_02,
+  solution_day_03,
+  solution_day_04,
+]
 
 pub fn main() {
   sols
