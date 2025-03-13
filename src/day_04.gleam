@@ -1,5 +1,3 @@
-// import gleam/io
-import gleam/io
 import gleam/list
 import gleam/result
 import gleam/string
@@ -40,16 +38,16 @@ fn part2(s: String) -> Int {
 
 fn cross_xmas(g: Grid(String), pos: Pos) -> Result(Nil, Nil) {
   // nw and se
-  let #(r1, c1) = grid.north_west(pos)
-  use nw <- result.try(get(g, r1, c1))
-  let #(r2, c2) = grid.south_east(pos)
-  use se <- result.try(get(g, r2, c2))
+  let pos1 = grid.north_west(pos)
+  use nw <- result.try(get(g, pos1))
+  let pos2 = grid.south_east(pos)
+  use se <- result.try(get(g, pos2))
 
   // ne and sw
-  let #(r3, c3) = grid.north_east(pos)
-  use ne <- result.try(get(g, r3, c3))
-  let #(r4, c4) = grid.south_west(pos)
-  use sw <- result.try(get(g, r4, c4))
+  let pos3 = grid.north_east(pos)
+  use ne <- result.try(get(g, pos3))
+  let pos4 = grid.south_west(pos)
+  use sw <- result.try(get(g, pos4))
 
   case nw, se, ne, sw {
     "M", "S", "S", "M" -> Ok(Nil)
@@ -76,14 +74,14 @@ fn xmas_count(g: Grid(String), pos: Pos) -> Int {
 }
 
 fn check_xmas_in_dir(g: Grid(String), pos: Pos, dir: Dir) -> Result(Nil, Nil) {
-  let #(r1, c1) = grid.move(dir, pos)
-  use m <- result.try(get(g, r1, c1))
+  let pos1 = grid.move(dir, pos)
+  use m <- result.try(get(g, pos1))
 
-  let #(r2, c2) = grid.move(dir, #(r1, c1))
-  use a <- result.try(get(g, r2, c2))
+  let pos2 = grid.move(dir, pos1)
+  use a <- result.try(get(g, pos2))
 
-  let #(r3, c3) = grid.move(dir, #(r2, c2))
-  use s <- result.try(get(g, r3, c3))
+  let pos3 = grid.move(dir, pos2)
+  use s <- result.try(get(g, pos3))
 
   case m, a, s {
     "M", "A", "S" -> Ok(Nil)
@@ -97,7 +95,7 @@ fn find_string(g: Grid(String), s: String) -> List(Pos) {
   |> list.flat_map(fn(i) {
     list.range(0, cols - 1)
     |> list.map(fn(j) {
-      case get(g, i, j) {
+      case get(g, #(i, j)) {
         Ok(v) if v == s -> Ok(#(i, j))
         _ -> Error(Nil)
       }

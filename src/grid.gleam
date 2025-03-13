@@ -52,7 +52,8 @@ pub fn to_lists(g: Grid(a)) -> List(List(a)) {
 }
 
 // returns true if a row/col pair are inside the grid boundary
-pub fn is_inside(g: Grid(a), r: Int, c: Int) -> Bool {
+pub fn is_inside(g: Grid(a), pos: Pos) -> Bool {
+  let #(r, c) = pos
   let cols_ok = case get_cols(g) {
     Ok(cols) if c < cols -> True
     _ -> False
@@ -62,7 +63,8 @@ pub fn is_inside(g: Grid(a), r: Int, c: Int) -> Bool {
 
 // returns the value in the grid at (r, c) or Nil if out of bounds
 // should be very fast compared to List(a)
-pub fn get(g: Grid(a), r: Int, c: Int) -> Result(a, Nil) {
+pub fn get(g: Grid(a), pos: Pos) -> Result(a, Nil) {
+  let #(r, c) = pos
   use vs <- result.try(glearray.get(g, r))
   use v <- result.try(glearray.get(vs, c))
   Ok(v)
@@ -70,7 +72,8 @@ pub fn get(g: Grid(a), r: Int, c: Int) -> Result(a, Nil) {
 
 // returns the value in the grid at (r, c) or Nil if out of bounds
 // very expensive and probably slow
-pub fn set(g: Grid(a), r: Int, c: Int, v: a) -> Result(Grid(a), Nil) {
+pub fn set(g: Grid(a), pos: Pos, v: a) -> Result(Grid(a), Nil) {
+  let #(r, c) = pos
   use vs <- result.try(glearray.get(g, r))
   use new_row <- result.try(glearray.copy_set(vs, c, v))
   glearray.copy_set(g, r, new_row)
