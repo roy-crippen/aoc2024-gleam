@@ -1,4 +1,3 @@
-import gleam/io
 import gleeunit/should
 import grid
 
@@ -22,7 +21,7 @@ pub fn map_test() {
   let f = fn(s: String) { s <> "aaa" }
   let g1 = grid.map(g, f)
   // grid.show(g1)
-  grid.get(g1, #(3, 2)) |> io.debug |> should.equal(Ok("^aaa"))
+  grid.get(g1, #(3, 2)) |> should.equal(Ok("^aaa"))
 }
 
 pub fn make_test() {
