@@ -1,12 +1,17 @@
 import gleam/io
 import gleam/list
 import gleam/result
-import glearray
+import gleam/string
+import iv
 
-pub type Grid(a) =
-  glearray.Array(glearray.Array(a))
+pub type Grid(a) {
+  Grid(data: iv.Array(a), rows: Int, cols: Int)
+}
 
 pub type Pos =
+  Int
+
+pub type RC =
   #(Int, Int)
 
 pub type Dir {
@@ -20,131 +25,197 @@ pub type Dir {
   NE
 }
 
-pub fn get_rows(g: Grid(a)) -> Int {
-  glearray.length(g)
-}
-
-pub fn get_cols(g: Grid(a)) -> Result(Int, Nil) {
-  use vs <- result.try(glearray.get(g, 0))
-  Ok(glearray.length(vs))
-}
-
-// returns #(rows, cols)
-pub fn size(g: Grid(a)) -> Result(#(Int, Int), Nil) {
-  use cols_len <- result.try(get_cols(g))
-  Ok(#(get_rows(g), cols_len))
-}
-
-// returns a Grid of rows by cols all with values v
+/// Returns a Grid(a) of rows by cols all with value v
 pub fn make(rows: Int, cols: Int, v: a) -> Grid(a) {
-  let col_array = list.repeat(v, cols) |> glearray.from_list
-  list.repeat(col_array, rows) |> glearray.from_list
+  let data = list.repeat(v, rows * cols) |> iv.from_list
+  Grid(data, rows, cols)
 }
 
-// returns a Grid from a List(List(a))
-pub fn from_lists(xss: List(List(a))) -> Grid(a) {
-  list.map(xss, fn(xs) { glearray.from_list(xs) }) |> glearray.from_list
+/// Returns a Grid(a) of rows by cols from some List(a)
+pub fn from_lists(xss: List(List(a))) -> Result(Grid(a), Nil) {
+  let rows = list.length(xss)
+  use first_row <- result.try(list.first(xss))
+  let cols = list.length(first_row)
+  let data = list.flatten(xss) |> iv.from_list
+  Ok(Grid(data, rows, cols))
 }
 
-// returns a Grid from a List(List(a))
-pub fn to_lists(g: Grid(a)) -> List(List(a)) {
-  glearray.to_list(g) |> list.map(fn(ar) { glearray.to_list(ar) })
+/// Returns a Grid(a) of rows by cols from some List(a)
+pub fn from_list(data: List(a), rows: Int, cols: Int) -> Result(Grid(a), Nil) {
+  let data = data |> iv.from_list
+  Ok(Grid(data, rows, cols))
 }
 
-// returns true if a row/col pair are inside the grid boundary
-pub fn is_inside(g: Grid(a), pos: Pos) -> Bool {
-  let #(r, c) = pos
-  let cols_ok = case get_cols(g) {
-    Ok(cols) if c < cols -> True
-    _ -> False
+pub fn pos_to_rc(pos: Pos, rows: Int, cols: Int) -> Result(RC, Nil) {
+  case is_inside(pos, rows, cols) {
+    True -> Ok(#(pos / cols, pos % cols))
+    False -> Error(Nil)
   }
-  r >= 0 && r < get_rows(g) && c >= 0 && cols_ok
 }
 
-// returns the value in the grid at (r, c) or Nil if out of bounds
-// should be very fast compared to List(a)
+pub fn pos_to_rc_unsafe(pos: Pos, cols: Int) -> RC {
+  #(pos / cols, pos % cols)
+}
+
+pub fn rc_to_pos(rc: RC, cols: Int) -> Result(Pos, Nil) {
+  let #(r, c) = rc
+  case r >= 0 && c >= 0 {
+    True -> Ok(r * cols + c)
+    False -> Error(Nil)
+  }
+}
+
+pub fn rc_to_pos_unsafe(rc: RC, cols: Int) -> Pos {
+  let #(r, c) = rc
+  r * cols + c
+}
+
+/// Returns true if position pos is inside the grid boundary
+pub fn is_inside(pos: Pos, rows: Int, cols: Int) -> Bool {
+  pos >= 0 && pos < rows * cols
+}
+
+/// Returns the value in the grid at pos or Nil if out of bounds
 pub fn get(g: Grid(a), pos: Pos) -> Result(a, Nil) {
-  let #(r, c) = pos
-  use vs <- result.try(glearray.get(g, r))
-  use v <- result.try(glearray.get(vs, c))
+  use v <- result.try(iv.get(g.data, pos))
   Ok(v)
 }
 
-// returns the value in the grid at (r, c) or Nil if out of bounds
-// very expensive and probably slow
+/// Sets the value in g at pos or Nil if out of bounds, returns the modified grid
 pub fn set(g: Grid(a), pos: Pos, v: a) -> Result(Grid(a), Nil) {
-  let #(r, c) = pos
-  use vs <- result.try(glearray.get(g, r))
-  use new_row <- result.try(glearray.copy_set(vs, c, v))
-  glearray.copy_set(g, r, new_row)
+  use data <- result.try(iv.set(g.data, pos, v))
+  Ok(Grid(..g, data: data))
 }
 
 pub fn map(g: Grid(a), f: fn(a) -> b) -> Grid(b) {
-  let xss = to_lists(g)
-  let yss = list.map(xss, fn(xs) { list.map(xs, fn(x) { f(x) }) })
-  from_lists(yss)
+  let data = g.data |> iv.map(f)
+  Grid(rows: g.rows, cols: g.cols, data: data)
 }
 
-pub fn apply8(g: Grid(a), pos: Pos, f: fn(Grid(a), Pos) -> b) -> List(b) {
-  [
-    f(g, north(pos)),
-    f(g, north_west(pos)),
-    f(g, west(pos)),
-    f(g, south_west(pos)),
-    f(g, south(pos)),
-    f(g, south_east(pos)),
-    f(g, east(pos)),
-  ]
+pub fn find_positions(g: Grid(a), f: fn(a) -> Bool) -> List(Pos) {
+  g.data
+  |> iv.index_fold([], fn(acc, v, idx) {
+    case f(v) {
+      True -> [idx, ..acc]
+      False -> acc
+    }
+  })
 }
+
+// pub fn apply8(g: Grid(a), pos: Pos, f: fn(Grid(a), Pos) -> b) -> List(b) {
+//   [
+//     f(g, north(pos)),
+//     f(g, north_west(pos)),
+//     f(g, west(pos)),
+//     f(g, south_west(pos)),
+//     f(g, south(pos)),
+//     f(g, south_east(pos)),
+//     f(g, east(pos)),
+//   ]
+// }
 
 pub fn show(g: Grid(a)) {
   io.debug("")
-  to_lists(g)
+  iv.to_list(g.data)
+  |> list.sized_chunk(g.cols)
   |> list.each(fn(vs) { io.debug(vs) })
 }
 
-pub fn move(dir: Dir, pos: Pos) -> Pos {
-  let #(r, c) = pos
+pub fn show_str(g: Grid(String)) -> List(String) {
+  iv.to_list(g.data)
+  |> list.sized_chunk(g.cols)
+  |> list.map(fn(vs) {
+    string.join(vs, " ")
+    |> string.inspect
+    |> string.replace("\"", "")
+  })
+}
+
+pub fn move_pos(
+  direction dir: Dir,
+  position pos: Pos,
+  row_cnt rows: Int,
+  col_cnt cols: Int,
+) -> Result(Pos, Nil) {
+  let max_col = cols - 1
+  let max_row = rows - 1
+  use #(r, c) <- result.try(pos_to_rc(pos, rows, cols))
   case dir {
-    N -> #(r - 1, c)
-    NW -> #(r - 1, c - 1)
-    W -> #(r, c - 1)
-    SW -> #(r + 1, c - 1)
-    S -> #(r + 1, c)
-    SE -> #(r + 1, c + 1)
-    E -> #(r, c + 1)
-    NE -> #(r - 1, c + 1)
+    N if r > 0 -> Ok(pos - cols)
+    NW if r > 0 && c > 0 -> Ok(pos - cols - 1)
+    W if c > 0 -> Ok(pos - 1)
+    SW if r < max_row && c > 0 -> Ok(pos + cols - 1)
+    S if r < max_row -> Ok(pos + cols)
+    SE if r < max_row && c < max_col -> Ok(pos + cols + 1)
+    E if c < max_col -> Ok(pos + 1)
+    NE if r > 0 && c < max_col -> Ok(pos - cols + 1)
+    _ -> Error(Nil)
   }
 }
 
-pub fn north(pos: Pos) -> Pos {
-  move(N, pos)
+pub fn move_pos_unsafe(
+  direction dir: Dir,
+  position pos: Pos,
+  col_cnt cols: Int,
+) -> Pos {
+  case dir {
+    N -> pos - cols
+    NW -> pos - cols - 1
+    W -> pos - 1
+    SW -> pos + cols - 1
+    S -> pos + cols
+    SE -> pos + cols + 1
+    E -> pos + 1
+    NE -> pos - cols + 1
+  }
 }
 
-pub fn north_west(pos: Pos) -> Pos {
-  move(NW, pos)
+// pub fn move_pos_unsafe1(
+//   direction dir: Dir,
+//   position pos: Pos,
+//   col_cnt cols: Int,
+// ) -> Pos {
+//   let #(r, c) = pos_to_rc_unsafe(pos, cols)
+//   case dir {
+//     N -> #(r - 1, c) |> rc_to_pos_unsafe(cols)
+//     NW -> #(r - 1, c - 1) |> rc_to_pos_unsafe(cols)
+//     W -> #(r, c - 1) |> rc_to_pos_unsafe(cols)
+//     SW -> #(r + 1, c - 1) |> rc_to_pos_unsafe(cols)
+//     S -> #(r + 1, c) |> rc_to_pos_unsafe(cols)
+//     SE -> #(r + 1, c + 1) |> rc_to_pos_unsafe(cols)
+//     E -> #(r, c + 1) |> rc_to_pos_unsafe(cols)
+//     NE -> #(r - 1, c + 1) |> rc_to_pos_unsafe(cols)
+//   }
+// }
+
+pub fn north(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+  move_pos(N, pos, rows, cols)
 }
 
-pub fn west(pos: Pos) -> Pos {
-  move(W, pos)
+pub fn north_west(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+  move_pos(NW, pos, rows, cols)
 }
 
-pub fn south_west(pos: Pos) -> Pos {
-  move(SW, pos)
+pub fn west(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+  move_pos(W, pos, rows, cols)
 }
 
-pub fn south(pos: Pos) -> Pos {
-  move(S, pos)
+pub fn south_west(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+  move_pos(SW, pos, rows, cols)
 }
 
-pub fn south_east(pos: Pos) -> Pos {
-  move(SE, pos)
+pub fn south(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+  move_pos(S, pos, rows, cols)
 }
 
-pub fn east(pos: Pos) -> Pos {
-  move(E, pos)
+pub fn south_east(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+  move_pos(SE, pos, rows, cols)
 }
 
-pub fn north_east(pos: Pos) -> Pos {
-  move(NE, pos)
+pub fn east(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+  move_pos(E, pos, rows, cols)
+}
+
+pub fn north_east(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+  move_pos(NE, pos, rows, cols)
 }
