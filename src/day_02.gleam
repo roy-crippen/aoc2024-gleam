@@ -3,45 +3,34 @@ import gleam/list
 import gleam/string
 import utils.{Solution, read_file}
 
-const expected_part1 = 390
-
-const expected_part2 = 439
-
 type Ordered {
   Asc
   Desc
   NoOrder
 }
 
-pub fn solution_day_02() -> utils.Solution {
-  Solution(
-    part1,
-    part2,
-    expected_part1,
-    expected_part2,
-    day: 2,
-    input_str: read_file("data/day_02.txt"),
-  )
+fn diffs(xs: List(Int)) -> List(Int) {
+  diffs_loop(xs, [])
 }
 
-fn part1(s: String) -> Int {
-  parse(s)
-  |> list.map(fn(xs) { xs |> diffs })
-  |> list.fold(0, fn(acc, xs) {
-    case is_safe(xs).0 {
-      True -> acc + 1
-      _ -> acc
-    }
-  })
+fn diffs_loop(ys: List(Int), rs: List(Int)) -> List(Int) {
+  case ys {
+    [] -> list.reverse(rs)
+    [first, second] -> list.reverse([{ first - second }, ..rs])
+    [first, second, ..rest] ->
+      diffs_loop([second, ..rest], [{ first - second }, ..rs])
+    [_] -> panic
+  }
 }
 
-fn part2(s: String) -> Int {
-  parse(s)
-  |> list.fold(0, fn(acc, xs) {
-    case is_safe_part2(xs) {
-      True -> acc + 1
-      _ -> acc
-    }
+fn parse(s: String) -> List(List(Int)) {
+  string.split(s, "\n")
+  |> list.map(fn(s) {
+    string.split(s, " ")
+    |> list.map(fn(s) {
+      let assert Ok(v) = int.parse(s)
+      v
+    })
   })
 }
 
@@ -98,35 +87,38 @@ fn remove_1(xs: List(Int), idx: Int) -> List(Int) {
   list.append(lefts, rest)
 }
 
-fn diffs(xs: List(Int)) -> List(Int) {
-  diffs_loop(xs, [])
+const expected_part1 = 390
+
+const expected_part2 = 439
+
+pub fn solution_day_02() -> utils.Solution {
+  Solution(
+    part1,
+    part2,
+    expected_part1,
+    expected_part2,
+    day: 2,
+    input_str: read_file("data/day_02.txt"),
+  )
 }
 
-fn diffs_loop(ys: List(Int), rs: List(Int)) -> List(Int) {
-  case ys {
-    [] -> list.reverse(rs)
-    [first, second] -> list.reverse([{ first - second }, ..rs])
-    [first, second, ..rest] ->
-      diffs_loop([second, ..rest], [{ first - second }, ..rs])
-    [_] -> panic
-  }
-}
-
-fn parse(s: String) -> List(List(Int)) {
-  string.split(s, "\n")
-  |> list.map(fn(s) {
-    s
-    |> string.split(" ")
-    |> list.map(fn(s) {
-      let assert Ok(v) = int.parse(s)
-      v
-    })
+fn part1(s: String) -> Int {
+  parse(s)
+  |> list.map(fn(xs) { xs |> diffs })
+  |> list.fold(0, fn(acc, xs) {
+    case is_safe(xs).0 {
+      True -> acc + 1
+      _ -> acc
+    }
   })
 }
 
-pub const example_string = "7 6 4 2 1
-1 2 7 8 9
-9 7 6 2 1
-1 3 2 4 5
-8 6 4 4 1
-1 3 6 7 9"
+fn part2(s: String) -> Int {
+  parse(s)
+  |> list.fold(0, fn(acc, xs) {
+    case is_safe_part2(xs) {
+      True -> acc + 1
+      _ -> acc
+    }
+  })
+}

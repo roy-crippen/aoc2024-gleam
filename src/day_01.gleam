@@ -1,9 +1,57 @@
 import gleam/dict.{type Dict}
 import gleam/int
 import gleam/list
+import gleam/option.{None, Some}
 import gleam/result
 import gleam/string
 import utils.{Solution, read_file}
+
+fn parse(s: String) -> #(List(Int), List(Int)) {
+  string.trim(s)
+  |> string.split("\n")
+  |> parse_loop([], [])
+}
+
+fn parse_loop(
+  lines: List(String),
+  lefts: List(Int),
+  rights: List(Int),
+) -> #(List(Int), List(Int)) {
+  case lines {
+    [] -> #(lefts, rights)
+    [line, ..rest] -> {
+      let assert Ok(#(l, r)) = string.split_once(line, "   ")
+      let assert Ok(left) = int.parse(l)
+      let assert Ok(right) = int.parse(r)
+      parse_loop(rest, [left, ..lefts], [right, ..rights])
+    }
+  }
+}
+
+fn sort_then_zip(pair: #(List(Int), List(Int))) -> List(#(Int, Int)) {
+  let l_sorted = list.sort(pair.0, int.compare)
+  let r_sorted = list.sort(pair.1, int.compare)
+  list.zip(l_sorted, r_sorted)
+}
+
+fn solve_part2(pair: #(List(Int), List(Int))) -> Int {
+  let #(lefts, rights) = pair
+  let r_dict = build_dict(rights)
+  lefts
+  |> list.fold(0, fn(acc, left) {
+    acc + left * { dict.get(r_dict, left) |> result.unwrap(0) }
+  })
+}
+
+fn build_dict(xs: List(Int)) -> Dict(Int, Int) {
+  let increment = fn(x) {
+    case x {
+      Some(i) -> i + 1
+      None -> 1
+    }
+  }
+  list.fold(xs, dict.new(), fn(acc, x) { dict.upsert(acc, x, increment) })
+}
 
 const expected_part1 = 2_086_478
 
@@ -30,62 +78,3 @@ fn part1(s: String) -> Int {
 fn part2(s: String) -> Int {
   s |> parse |> solve_part2
 }
-
-fn solve_part2(pair: #(List(Int), List(Int))) -> Int {
-  let #(lefts, rights) = pair
-  let r_dict = build_dict(rights)
-  lefts
-  |> list.fold(0, fn(acc, left) {
-    acc + left * { dict.get(r_dict, left) |> result.unwrap(0) }
-  })
-}
-
-fn build_dict(xs: List(Int)) -> Dict(Int, Int) {
-  list.fold(xs, dict.new(), fn(acc, x) {
-    case dict.has_key(acc, x) {
-      True -> {
-        let v = dict.get(acc, x) |> result.unwrap(0)
-        dict.insert(acc, x, v + 1)
-      }
-      _ -> dict.insert(acc, x, 1)
-    }
-  })
-}
-
-fn sort_then_zip(pair: #(List(Int), List(Int))) -> List(#(Int, Int)) {
-  let l_sorted = list.sort(pair.0, by: int.compare)
-  let r_sorted = list.sort(pair.1, by: int.compare)
-  list.zip(l_sorted, r_sorted)
-}
-
-fn parse(s: String) -> #(List(Int), List(Int)) {
-  string.split(s, "\n") |> list.map(string.trim) |> parse_loop([], [])
-}
-
-fn parse_loop(
-  lines: List(String),
-  lefts: List(Int),
-  rights: List(Int),
-) -> #(List(Int), List(Int)) {
-  case lines {
-    [] -> #(lefts, rights)
-    [line, ..rest] -> {
-      case string.is_empty(line) {
-        True -> parse_loop(rest, lefts, rights)
-        _ -> {
-          let assert Ok(#(l, r)) = string.split_once(line, "   ")
-          let assert Ok(left) = int.parse(l)
-          let assert Ok(right) = int.parse(r)
-          parse_loop(rest, [left, ..lefts], [right, ..rights])
-        }
-      }
-    }
-  }
-}
-
-pub const example_string = "3   4
-4   3
-2   5
-1   3
-3   9
-3   3"

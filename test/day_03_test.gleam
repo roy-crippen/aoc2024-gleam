@@ -1,5 +1,9 @@
-import day_03.{example_string1, example_string2, solution_day_03}
+import day_03.{solution_day_03}
 import gleeunit/should
+
+pub const example_string1 = "xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))"
+
+pub const example_string2 = "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))"
 
 pub fn part1_test() {
   let sol = solution_day_03()

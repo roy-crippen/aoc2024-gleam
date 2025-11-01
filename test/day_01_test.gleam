@@ -1,5 +1,12 @@
-import day_01.{example_string, solution_day_01}
+import day_01.{solution_day_01}
 import gleeunit/should
+
+pub const example_string = "3   4
+4   3
+2   5
+1   3
+3   9
+3   3"
 
 pub fn part1_test() {
   let sol = solution_day_01()
