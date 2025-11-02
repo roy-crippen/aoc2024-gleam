@@ -1,10 +1,10 @@
-import day_01.{solution_day_01}
-
-import day_02.{solution_day_02}
-import day_03.{solution_day_03}
+// import day_01.{solution_day_01}
+// import day_02.{solution_day_02}
+// import day_03.{solution_day_03}
 import day_04.{solution_day_04}
-import day_05.{solution_day_05}
-import day_99.{solution_day_99}
+
+// import day_05.{solution_day_05}
+import day_06.{solution_day_06}
 import gleam/erlang.{Microsecond, system_time}
 import gleam/float
 import gleam/int
@@ -16,19 +16,15 @@ import gleam_community/ansi
 import utils.{type Solution}
 
 const sols = [
-  solution_day_01,
-  solution_day_02,
-  solution_day_03,
+  // solution_day_01,
+  // solution_day_02,
+  // solution_day_03,
   solution_day_04,
-  solution_day_05,
-  solution_day_99,
+  // solution_day_05,
+  solution_day_06,
 ]
 
 pub fn main() {
-  // beam warmup
-  list.range(1, 3)
-  |> list.each(fn(_v) { solution_day_01().part1(solution_day_01().input_str) })
-
   sols
   |> list.each(fn(solf) {
     let sol = solf()

@@ -1,11 +1,9 @@
-import gleam/io
 import gleam/list
 import gleam/result
-import gleam/string
-import iv
+import glearray
 
 pub type Grid(a) {
-  Grid(data: iv.Array(a), rows: Int, cols: Int)
+  Grid(data: glearray.Array(a), rows: Int, cols: Int)
 }
 
 pub type Pos =
@@ -27,7 +25,7 @@ pub type Dir {
 
 /// Returns a Grid(a) of rows by cols all with value v
 pub fn make(rows: Int, cols: Int, v: a) -> Grid(a) {
-  let data = list.repeat(v, rows * cols) |> iv.from_list
+  let data = list.repeat(v, rows * cols) |> glearray.from_list
   Grid(data, rows, cols)
 }
 
@@ -36,13 +34,13 @@ pub fn from_lists(xss: List(List(a))) -> Result(Grid(a), Nil) {
   let rows = list.length(xss)
   use first_row <- result.try(list.first(xss))
   let cols = list.length(first_row)
-  let data = list.flatten(xss) |> iv.from_list
+  let data = list.flatten(xss) |> glearray.from_list
   Ok(Grid(data, rows, cols))
 }
 
 /// Returns a Grid(a) of rows by cols from some List(a)
 pub fn from_list(data: List(a), rows: Int, cols: Int) -> Result(Grid(a), Nil) {
-  let data = data |> iv.from_list
+  let data = data |> glearray.from_list
   Ok(Grid(data, rows, cols))
 }
 
@@ -77,24 +75,26 @@ pub fn is_inside(pos: Pos, rows: Int, cols: Int) -> Bool {
 
 /// Returns the value in the grid at pos or Nil if out of bounds
 pub fn get(g: Grid(a), pos: Pos) -> Result(a, Nil) {
-  use v <- result.try(iv.get(g.data, pos))
+  use v <- result.try(glearray.get(g.data, pos))
   Ok(v)
 }
 
 /// Sets the value in g at pos or Nil if out of bounds, returns the modified grid
+/// Expensive because set make a new copy of the data
 pub fn set(g: Grid(a), pos: Pos, v: a) -> Result(Grid(a), Nil) {
-  use data <- result.try(iv.set(g.data, pos, v))
+  use data <- result.try(glearray.copy_set(g.data, pos, v))
   Ok(Grid(..g, data: data))
 }
 
 pub fn map(g: Grid(a), f: fn(a) -> b) -> Grid(b) {
-  let data = g.data |> iv.map(f)
+  let data = g.data |> glearray.to_list |> list.map(f) |> glearray.from_list
   Grid(rows: g.rows, cols: g.cols, data: data)
 }
 
 pub fn find_positions(g: Grid(a), f: fn(a) -> Bool) -> List(Pos) {
   g.data
-  |> iv.index_fold([], fn(acc, v, idx) {
+  |> glearray.to_list
+  |> list.index_fold([], fn(acc, v, idx) {
     case f(v) {
       True -> [idx, ..acc]
       False -> acc
@@ -114,22 +114,11 @@ pub fn find_positions(g: Grid(a), f: fn(a) -> Bool) -> List(Pos) {
 //   ]
 // }
 
-pub fn show(g: Grid(a)) {
-  io.debug("")
-  iv.to_list(g.data)
-  |> list.sized_chunk(g.cols)
-  |> list.each(fn(vs) { io.debug(vs) })
-}
-
-pub fn show_str(g: Grid(String)) -> List(String) {
-  iv.to_list(g.data)
-  |> list.sized_chunk(g.cols)
-  |> list.map(fn(vs) {
-    string.join(vs, "")
-    |> string.inspect
-    |> string.replace("\"", "")
-  })
-}
+// pub fn show(g: Grid(a)) {
+//   io.debug("")
+//   to_lists(g)
+//   |> list.each(fn(vs) { io.debug(vs) })
+// }
 
 pub fn move_pos(
   direction dir: Dir,
