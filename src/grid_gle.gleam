@@ -6,8 +6,35 @@ pub type Grid(a) {
   Grid(data: glearray.Array(a), rows: Int, cols: Int)
 }
 
-pub type Pos =
-  Int
+/// Returns a Grid(a) of rows by cols all with value v
+pub fn make(rows: Int, cols: Int, v: a) -> Grid(a) {
+  let data = list.repeat(v, rows * cols) |> glearray.from_list
+  Grid(data, rows, cols)
+}
+
+/// Returns a Grid(a) of rows by cols from some List(List(a)), validating uniform row lengths
+pub fn from_lists(xss: List(List(a))) -> Result(Grid(a), Nil) {
+  let rows = list.length(xss)
+  use first_row <- result.try(list.first(xss))
+  let cols = list.length(first_row)
+  use _ <- result.try(case list.all(xss, fn(row) { list.length(row) == cols }) {
+    True -> Ok(Nil)
+    False -> Error(Nil)
+  })
+  let data = list.flatten(xss) |> glearray.from_list
+  Ok(Grid(data, rows, cols))
+}
+
+/// Returns a Grid(a) of rows by cols from some List(a), validating exact length match
+pub fn from_list(data: List(a), rows: Int, cols: Int) -> Result(Grid(a), Nil) {
+  case list.length(data) == rows * cols {
+    True -> {
+      let data_array = data |> glearray.from_list
+      Ok(Grid(data_array, rows, cols))
+    }
+    False -> Error(Nil)
+  }
+}
 
 pub type RC =
   #(Int, Int)
@@ -23,39 +50,18 @@ pub type Dir {
   NE
 }
 
-/// Returns a Grid(a) of rows by cols all with value v
-pub fn make(rows: Int, cols: Int, v: a) -> Grid(a) {
-  let data = list.repeat(v, rows * cols) |> glearray.from_list
-  Grid(data, rows, cols)
-}
-
-/// Returns a Grid(a) of rows by cols from some List(a)
-pub fn from_lists(xss: List(List(a))) -> Result(Grid(a), Nil) {
-  let rows = list.length(xss)
-  use first_row <- result.try(list.first(xss))
-  let cols = list.length(first_row)
-  let data = list.flatten(xss) |> glearray.from_list
-  Ok(Grid(data, rows, cols))
-}
-
-/// Returns a Grid(a) of rows by cols from some List(a)
-pub fn from_list(data: List(a), rows: Int, cols: Int) -> Result(Grid(a), Nil) {
-  let data = data |> glearray.from_list
-  Ok(Grid(data, rows, cols))
-}
-
-pub fn pos_to_rc(pos: Pos, rows: Int, cols: Int) -> Result(RC, Nil) {
+pub fn pos_to_rc(pos: Int, rows: Int, cols: Int) -> Result(RC, Nil) {
   case is_inside(pos, rows, cols) {
     True -> Ok(#(pos / cols, pos % cols))
     False -> Error(Nil)
   }
 }
 
-pub fn pos_to_rc_unsafe(pos: Pos, cols: Int) -> RC {
+pub fn pos_to_rc_unsafe(pos: Int, cols: Int) -> RC {
   #(pos / cols, pos % cols)
 }
 
-pub fn rc_to_pos(rc: RC, cols: Int) -> Result(Pos, Nil) {
+pub fn rc_to_pos(rc: RC, cols: Int) -> Result(Int, Nil) {
   let #(r, c) = rc
   case r >= 0 && c >= 0 {
     True -> Ok(r * cols + c)
@@ -63,69 +69,76 @@ pub fn rc_to_pos(rc: RC, cols: Int) -> Result(Pos, Nil) {
   }
 }
 
-pub fn rc_to_pos_unsafe(rc: RC, cols: Int) -> Pos {
+pub fn rc_to_pos_unsafe(rc: RC, cols: Int) -> Int {
   let #(r, c) = rc
   r * cols + c
 }
 
 /// Returns true if position pos is inside the grid boundary
-pub fn is_inside(pos: Pos, rows: Int, cols: Int) -> Bool {
+pub fn is_inside(pos: Int, rows: Int, cols: Int) -> Bool {
   pos >= 0 && pos < rows * cols
 }
 
 /// Returns the value in the grid at pos or Nil if out of bounds
-pub fn get(g: Grid(a), pos: Pos) -> Result(a, Nil) {
-  use v <- result.try(glearray.get(g.data, pos))
-  Ok(v)
+pub fn get(g: Grid(a), pos: Int) -> Result(a, Nil) {
+  glearray.get(g.data, pos)
 }
 
 /// Sets the value in g at pos or Nil if out of bounds, returns the modified grid
 /// Expensive because set make a new copy of the data
-pub fn set(g: Grid(a), pos: Pos, v: a) -> Result(Grid(a), Nil) {
+pub fn set(g: Grid(a), pos: Int, v: a) -> Result(Grid(a), Nil) {
   use data <- result.try(glearray.copy_set(g.data, pos, v))
   Ok(Grid(..g, data: data))
 }
 
 pub fn map(g: Grid(a), f: fn(a) -> b) -> Grid(b) {
-  let data = g.data |> glearray.to_list |> list.map(f) |> glearray.from_list
+  let data_list = g.data |> glearray.to_list
+  let mapped_list = list.map(data_list, f)
+  let data = glearray.from_list(mapped_list)
   Grid(rows: g.rows, cols: g.cols, data: data)
 }
 
-pub fn find_positions(g: Grid(a), f: fn(a) -> Bool) -> List(Pos) {
+/// Returns positions (in forward order) where f(value) is True
+pub fn find_positions(g: Grid(a), f: fn(a) -> Bool) -> List(Int) {
   g.data
   |> glearray.to_list
-  |> list.index_fold([], fn(acc, v, idx) {
+  |> list.index_map(fn(v, idx) {
     case f(v) {
-      True -> [idx, ..acc]
-      False -> acc
+      True -> Ok(idx)
+      False -> Error(Nil)
     }
   })
+  |> result.values
 }
 
-// pub fn apply8(g: Grid(a), pos: Pos, f: fn(Grid(a), Pos) -> b) -> List(b) {
-//   [
-//     f(g, north(pos)),
-//     f(g, north_west(pos)),
-//     f(g, west(pos)),
-//     f(g, south_west(pos)),
-//     f(g, south(pos)),
-//     f(g, south_east(pos)),
-//     f(g, east(pos)),
-//   ]
-// }
+/// Returns the grid data as List(List(a)) for visualization/printing
+pub fn to_lists(g: Grid(a)) -> List(List(a)) {
+  let chunk = fn(acc, v, i) {
+    case i % g.cols == 0 {
+      True -> [[v], ..acc]
+      False -> {
+        let assert [row, ..rest] = acc
+        [[v, ..row], ..rest]
+      }
+    }
+  }
+  let chunks_rev = g.data |> glearray.to_list |> list.index_fold([], chunk)
+  list.reverse(chunks_rev)
+}
 
-// pub fn show(g: Grid(a)) {
-//   io.debug("")
-//   to_lists(g)
-//   |> list.each(fn(vs) { io.debug(vs) })
-// }
+/// Returns valid neighbor positions in 8 directions (N, NW, W, SW, S, SE, E, NE)
+pub fn neighbors(g: Grid(a), pos: Int) -> List(Int) {
+  [north, north_west, west, south_west, south, south_east, east, north_east]
+  |> list.map(fn(mover) { mover(pos, g.rows, g.cols) })
+  |> list.filter_map(fn(v) { v })
+}
 
 pub fn move_pos(
   direction dir: Dir,
-  position pos: Pos,
+  position pos: Int,
   row_cnt rows: Int,
   col_cnt cols: Int,
-) -> Result(Pos, Nil) {
+) -> Result(Int, Nil) {
   let max_col = cols - 1
   let max_row = rows - 1
   use #(r, c) <- result.try(pos_to_rc(pos, rows, cols))
@@ -142,11 +155,12 @@ pub fn move_pos(
   }
 }
 
+/// Unsafe: May return out-of-bounds positions
 pub fn move_pos_unsafe(
   direction dir: Dir,
-  position pos: Pos,
+  position pos: Int,
   col_cnt cols: Int,
-) -> Pos {
+) -> Int {
   case dir {
     N -> pos - cols
     NW -> pos - cols - 1
@@ -159,52 +173,34 @@ pub fn move_pos_unsafe(
   }
 }
 
-// pub fn move_pos_unsafe1(
-//   direction dir: Dir,
-//   position pos: Pos,
-//   col_cnt cols: Int,
-// ) -> Pos {
-//   let #(r, c) = pos_to_rc_unsafe(pos, cols)
-//   case dir {
-//     N -> #(r - 1, c) |> rc_to_pos_unsafe(cols)
-//     NW -> #(r - 1, c - 1) |> rc_to_pos_unsafe(cols)
-//     W -> #(r, c - 1) |> rc_to_pos_unsafe(cols)
-//     SW -> #(r + 1, c - 1) |> rc_to_pos_unsafe(cols)
-//     S -> #(r + 1, c) |> rc_to_pos_unsafe(cols)
-//     SE -> #(r + 1, c + 1) |> rc_to_pos_unsafe(cols)
-//     E -> #(r, c + 1) |> rc_to_pos_unsafe(cols)
-//     NE -> #(r - 1, c + 1) |> rc_to_pos_unsafe(cols)
-//   }
-// }
-
-pub fn north(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+pub fn north(pos: Int, rows: Int, cols: Int) -> Result(Int, Nil) {
   move_pos(N, pos, rows, cols)
 }
 
-pub fn north_west(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+pub fn north_west(pos: Int, rows: Int, cols: Int) -> Result(Int, Nil) {
   move_pos(NW, pos, rows, cols)
 }
 
-pub fn west(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+pub fn west(pos: Int, rows: Int, cols: Int) -> Result(Int, Nil) {
   move_pos(W, pos, rows, cols)
 }
 
-pub fn south_west(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+pub fn south_west(pos: Int, rows: Int, cols: Int) -> Result(Int, Nil) {
   move_pos(SW, pos, rows, cols)
 }
 
-pub fn south(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+pub fn south(pos: Int, rows: Int, cols: Int) -> Result(Int, Nil) {
   move_pos(S, pos, rows, cols)
 }
 
-pub fn south_east(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+pub fn south_east(pos: Int, rows: Int, cols: Int) -> Result(Int, Nil) {
   move_pos(SE, pos, rows, cols)
 }
 
-pub fn east(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+pub fn east(pos: Int, rows: Int, cols: Int) -> Result(Int, Nil) {
   move_pos(E, pos, rows, cols)
 }
 
-pub fn north_east(pos: Pos, rows: Int, cols: Int) -> Result(Pos, Nil) {
+pub fn north_east(pos: Int, rows: Int, cols: Int) -> Result(Int, Nil) {
   move_pos(NE, pos, rows, cols)
 }
