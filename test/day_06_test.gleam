@@ -25,3 +25,4 @@ pub fn part2_test() {
   // example_string |> sol.part2 |> should.equal(9)
   // sol.input_str |> sol.part2 |> should.equal(sol.expected_part2)
 }
+// pub fn int

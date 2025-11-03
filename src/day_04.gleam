@@ -1,7 +1,7 @@
 import gleam/list
 import gleam/result
 import gleam/string
-import grid_gle.{type Dir, type Grid, type Pos}
+import grid_gle.{type Dir, type Grid}
 import utils.{Solution, read_file}
 
 const ch_x = 88
@@ -23,7 +23,7 @@ fn parse(s: String) -> Grid(Int) {
   |> utils.unwrap
 }
 
-fn xmas_count(g: Grid(Int), pos: Pos) -> Int {
+fn xmas_count(g: Grid(Int), pos: Int) -> Int {
   [
     check_xmas_in_dir(g, pos, grid_gle.N),
     check_xmas_in_dir(g, pos, grid_gle.NW),
@@ -38,7 +38,7 @@ fn xmas_count(g: Grid(Int), pos: Pos) -> Int {
   |> list.length
 }
 
-fn check_xmas_in_dir(g: Grid(Int), pos: Pos, dir: Dir) -> Result(Nil, Nil) {
+fn check_xmas_in_dir(g: Grid(Int), pos: Int, dir: Dir) -> Result(Nil, Nil) {
   use pos1 <- result.try(grid_gle.move_pos(dir, pos, g.rows, g.cols))
   use m <- result.try(grid_gle.get(g, pos1))
 
@@ -56,7 +56,7 @@ fn check_xmas_in_dir(g: Grid(Int), pos: Pos, dir: Dir) -> Result(Nil, Nil) {
   }
 }
 
-fn cross_xmas(g: Grid(Int), pos: Pos) -> Result(Nil, Nil) {
+fn cross_xmas(g: Grid(Int), pos: Int) -> Result(Nil, Nil) {
   // nw and se
   use pos1 <- result.try(grid_gle.north_west(pos, g.rows, g.cols))
   use nw <- result.try(grid_gle.get(g, pos1))

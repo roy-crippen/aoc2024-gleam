@@ -1,9 +1,7 @@
-import gleam/io
 import gleam/list
-import gleam/result
 import gleam/set
 import gleam/string
-import grid_gle.{type Dir, type Grid, type Pos}
+import grid_gle.{type Dir, type Grid}
 import utils.{Solution, read_file}
 
 const hash = 35
@@ -11,7 +9,7 @@ const hash = 35
 const carat = 94
 
 type State {
-  State(pos: Pos, dir: Dir)
+  State(pos: Int, dir: Dir)
 }
 
 type Status {
