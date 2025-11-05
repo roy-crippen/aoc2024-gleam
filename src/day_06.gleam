@@ -1,5 +1,4 @@
 import bool_bit_vector_ata as bbv
-import gleam/io
 import gleam/list
 import gleam/set
 import gleam/string
@@ -93,19 +92,17 @@ fn to_next(g: Grid(Int), st: State) -> #(State, Status) {
 //   }
 // }
 
-fn dir_to_int(dir: Dir) -> Int {
-  case dir {
+fn pos_dir_to_index(cols: Int, pos: Int, dir: Dir) {
+  let dir_int = case dir {
     N -> 0
     E -> 1
     S -> 2
     W -> 3
     _ -> panic as "invalid direction"
   }
-}
 
-fn pos_dir_to_index(cols: Int, pos: Int, dir: Dir) {
   let #(r, c) = grid_gle.pos_to_rc_unsafe(pos, cols)
-  { r * cols + c } * 4 + dir_to_int(dir)
+  { r * cols + c } * 4 + dir_int
 }
 
 fn is_cycle(
