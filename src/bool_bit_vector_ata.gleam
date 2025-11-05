@@ -2,11 +2,11 @@ import atomic_array as ata
 import gleam/int
 
 pub type BoolBitVect {
-  BBVect(data: ata.AtomicArray)
+  BBVect(data: ata.AtomicArray, size: Int)
 }
 
 pub fn new_unsigned(size size: Int) -> BoolBitVect {
-  BBVect(data: ata.new_unsigned(size))
+  BBVect(data: ata.new_unsigned(size), size: size)
 }
 
 // iv version
@@ -16,16 +16,17 @@ pub fn new_unsigned(size size: Int) -> BoolBitVect {
 // }
 
 pub fn length(vect: BoolBitVect) -> Int {
-  vect.data |> ata.size
+  vect.size
 }
 
 pub fn get_bool_bit(vect: BoolBitVect, key: Int) -> Result(Bool, Nil) {
-  let buckets = ata.size(vect.data)
-  let bucket = case key / 64 {
-    v if v >= 0 && v < buckets -> Ok(v)
-    _ -> Error(Nil)
-  }
-  let assert Ok(bucket) = bucket
+  // let buckets = vect.size
+  // let bucket = case key / 64 {
+  //   v if v >= 0 && v < buckets -> Ok(v)
+  //   _ -> Error(Nil)
+  // }
+  // let assert Ok(bucket) = bucket
+  let bucket = key / 64
   let bit = key % 64
   let assert Ok(val) = ata.get(vect.data, bucket)
   let shifted = int.bitwise_shift_right(val, bit)
@@ -35,12 +36,13 @@ pub fn get_bool_bit(vect: BoolBitVect, key: Int) -> Result(Bool, Nil) {
 }
 
 pub fn toggle_bool_bit(vect: BoolBitVect, key: Int) -> Result(Nil, Nil) {
-  let buckets = ata.size(vect.data)
-  let bucket = case key / 64 {
-    v if v >= 0 && v < buckets -> Ok(v)
-    _ -> Error(Nil)
-  }
-  let assert Ok(bucket) = bucket
+  // let buckets = vect.size
+  // let bucket = case key / 64 {
+  //   v if v >= 0 && v < buckets -> Ok(v)
+  //   _ -> Error(Nil)
+  // }
+  // let assert Ok(bucket) = bucket
+  let bucket = key / 64
   let bit = key % 64
   let assert Ok(val) = ata.get(vect.data, bucket)
   let bit_mask = int.bitwise_shift_left(1, bit)
