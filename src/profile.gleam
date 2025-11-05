@@ -19,6 +19,9 @@ import utils.{type Solution, Solution}
 import day_01
 import day_02
 import day_03
+import day_04
+import day_05
+import day_06
 
 // ---------------------------------------------------------------------
 //  FFI for eprof – CORRECT API
@@ -328,6 +331,9 @@ fn get_solution_for_day(day: Int) -> fn() -> Solution {
     1 -> day_01.solution_day_01
     2 -> day_02.solution_day_02
     3 -> day_03.solution_day_03
+    4 -> day_04.solution_day_04
+    5 -> day_05.solution_day_05
+    6 -> day_06.solution_day_06
     // Add more days here
     _ -> fn() {
       Solution(

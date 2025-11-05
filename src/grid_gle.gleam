@@ -57,7 +57,7 @@ pub fn pos_to_rc(pos: Int, rows: Int, cols: Int) -> Result(RC, Nil) {
   }
 }
 
-pub fn pos_to_rc_unsafe(pos: Int, cols: Int) -> RC {
+pub fn pos_to_rc_unsafe(pos_idx pos: Int, col_cnt cols: Int) -> RC {
   #(pos / cols, pos % cols)
 }
 

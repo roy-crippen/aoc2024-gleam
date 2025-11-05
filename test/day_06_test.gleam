@@ -20,9 +20,7 @@ pub fn part1_test() {
 }
 
 pub fn part2_test() {
-  should.equal(1, 1)
-  // let sol = solution_day_04()
-  // example_string |> sol.part2 |> should.equal(9)
+  let sol = solution_day_06()
+  example_string |> sol.part2 |> should.equal(6)
   // sol.input_str |> sol.part2 |> should.equal(sol.expected_part2)
 }
-// pub fn int

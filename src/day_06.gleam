@@ -1,7 +1,9 @@
+import bool_bit_vector_ata as bbv
+import gleam/io
 import gleam/list
 import gleam/set
 import gleam/string
-import grid_gle.{type Dir, type Grid}
+import grid_gle.{type Dir, type Grid, E, N, S, W}
 import utils.{Solution, read_file}
 
 const hash = 35
@@ -37,10 +39,10 @@ fn parse(s: String) -> #(Grid(Int), State) {
 
 fn next_dir(dir: Dir) -> Dir {
   case dir {
-    grid_gle.N -> grid_gle.E
-    grid_gle.E -> grid_gle.S
-    grid_gle.S -> grid_gle.W
-    grid_gle.W -> grid_gle.N
+    N -> E
+    E -> S
+    S -> W
+    W -> N
     _ -> panic as "invalid direction"
   }
 }
@@ -67,14 +69,100 @@ fn traverse_part1_loop(
 }
 
 fn to_next(g: Grid(Int), st: State) -> #(State, Status) {
-  let new_pos = grid_gle.move_pos_unsafe(st.dir, st.pos, g.cols)
-  let is_inside = grid_gle.is_inside(new_pos, g.rows, g.cols)
-  let is_guard =
-    is_inside && { grid_gle.get(g, new_pos) |> utils.unwrap } == hash
-  case is_inside, is_guard {
-    True, True -> #(st, Guard)
-    False, _ -> #(st, OutOfBounds)
-    True, False -> #(State(..st, pos: new_pos), Running)
+  case grid_gle.move_pos(st.dir, st.pos, g.rows, g.cols) {
+    Error(_) -> #(st, OutOfBounds)
+    Ok(new_pos) -> {
+      let is_guard = { grid_gle.get(g, new_pos) |> utils.unwrap } == hash
+      case is_guard {
+        True -> #(st, Guard)
+        False -> #(State(..st, pos: new_pos), Running)
+      }
+    }
+  }
+}
+
+// fn to_next(g: Grid(Int), st: State) -> #(State, Status) {
+//   let new_pos = grid_gle.move_pos_unsafe(st.dir, st.pos, g.cols)
+//   let is_inside = grid_gle.is_inside(new_pos, g.rows, g.cols)
+//   let is_guard =
+//     is_inside && { grid_gle.get(g, new_pos) |> utils.unwrap } == hash
+//   case is_inside, is_guard {
+//     True, True -> #(st, Guard)
+//     False, _ -> #(st, OutOfBounds)
+//     True, False -> #(State(..st, pos: new_pos), Running)
+//   }
+// }
+
+fn dir_to_int(dir: Dir) -> Int {
+  case dir {
+    N -> 0
+    E -> 1
+    S -> 2
+    W -> 3
+    _ -> panic as "invalid direction"
+  }
+}
+
+fn pos_dir_to_index(cols: Int, pos: Int, dir: Dir) {
+  let #(r, c) = grid_gle.pos_to_rc_unsafe(pos, cols)
+  { r * cols + c } * 4 + dir_to_int(dir)
+}
+
+fn is_cycle(
+  g: Grid(Int),
+  state: State,
+  cols: Int,
+  visits: bbv.BoolBitVect,
+) -> Bool {
+  let #(init_state, init_status) = to_next(g, state)
+  is_cycle_loop(g, visits, cols, init_state, init_status)
+}
+
+fn is_cycle_loop(
+  g: Grid(Int),
+  visits: bbv.BoolBitVect,
+  cols: Int,
+  state: State,
+  status: Status,
+) -> Bool {
+  let key = pos_dir_to_index(cols, state.pos, state.dir)
+  let visited = bbv.get_bool_bit(visits, key)
+  // let tag = case visited {
+  //   Ok(True) -> "aaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  //   _ -> ""
+  // }
+  // io.debug(#(visited, state, status, tag))
+  case visited {
+    Ok(True) -> True
+    Ok(False) ->
+      case status {
+        OutOfBounds -> {
+          // io.debug("out of bounds")
+          // io.debug("")
+          False
+        }
+        Guard -> {
+          let new_state = State(..state, dir: next_dir(state.dir))
+          is_cycle_loop(g, visits, cols, new_state, Running)
+        }
+        Running -> {
+          let #(next_state, next_status) = to_next(g, state)
+          let next_visits = case next_status {
+            Running -> {
+              let assert Ok(Nil) = bbv.toggle_bool_bit(visits, key)
+              // let _ = io.debug(bbv.get_bool_bit(visits, key))
+              visits
+            }
+            _ -> visits
+          }
+          // let next_visits = case next_status {
+          //   Running -> bbv.toggle_bool_bit(visits, key) |> utils.unwrap
+          //   _ -> visits
+          // }
+          is_cycle_loop(g, next_visits, cols, next_state, next_status)
+        }
+      }
+    _ -> panic as "invalid key sent to bool_bit_vector"
   }
 }
 
@@ -105,8 +193,43 @@ fn part1(s: String) -> Int {
   |> set.size
 }
 
-fn part2(_s: String) -> Int {
-  42
+fn part2(s: String) -> Int {
+  let #(g, st) = parse(s)
+  let route = traverse_part1(g, st, [st]) |> list.reverse
+  // io.debug("")
+
+  // setup initial fold accumulator
+  let init_state = list.first(route) |> utils.unwrap
+  let init_cycle_set = set.new()
+  let init_pos_used_set = set.new()
+  let init_acc = #(init_state, init_cycle_set, init_pos_used_set)
+
+  // initialize bool bit vector to all false
+  let total_states = g.rows * g.cols * 4
+  let num_buckets = { total_states + 63 } / 64
+  // let init_visited = list.repeat(0, num_buckets) |> bbv.from_list
+  // let init_visited = bbv.new_unsigned(num_buckets)
+
+  let #(_final_state, cycle_positions, _used_positions) =
+    list.fold(route, init_acc, fn(acc, next_st) {
+      let #(prev_state, cycle_set, pos_used_set) = acc
+      let grid = grid_gle.set(g, next_st.pos, hash) |> utils.unwrap
+      let has_pos_been_used = set.contains(pos_used_set, next_st.pos)
+      let init_visited = bbv.new_unsigned(num_buckets)
+      let has_cycle = is_cycle(grid, prev_state, g.cols, init_visited)
+      let updated_cycle_set = case !has_pos_been_used && has_cycle {
+        True -> set.insert(cycle_set, next_st.pos)
+        False -> cycle_set
+      }
+      #(next_st, updated_cycle_set, set.insert(pos_used_set, next_st.pos))
+    })
+
+  // io.debug({ cycle_positions |> set.to_list |> list.sort(int.compare) })
+  // io.debug(final_state)
+  // io.debug({ used_positions |> set.to_list |> list.sort(int.compare) })
+
+  set.size(cycle_positions)
+  // 2162
 }
 
 pub const example_string = ""

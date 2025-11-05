@@ -3,6 +3,7 @@
 
 packages = [
   { name = "argv", version = "1.0.2", build_tools = ["gleam"], requirements = [], otp_app = "argv", source = "hex", outer_checksum = "BA1FF0929525DEBA1CE67256E5ADF77A7CDDFE729E3E3F57A5BDCAA031DED09D" },
+  { name = "atomic_array", version = "1.0.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "atomic_array", source = "hex", outer_checksum = "2B5D25F975D6E9A222E62077AD8F5A30A932606BCBC6F2869C7961D19BD0D4CE" },
   { name = "filepath", version = "1.1.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "filepath", source = "hex", outer_checksum = "67A6D15FB39EEB69DD31F8C145BB5A421790581BD6AA14B33D64D5A55DBD6587" },
   { name = "gleam_community_ansi", version = "1.4.3", build_tools = ["gleam"], requirements = ["gleam_community_colour", "gleam_regexp", "gleam_stdlib"], otp_app = "gleam_community_ansi", source = "hex", outer_checksum = "8A62AE9CC6EA65BEA630D95016D6C07E4F9973565FA3D0DE68DC4200D8E0DD27" },
   { name = "gleam_community_colour", version = "2.0.0", build_tools = ["gleam"], requirements = ["gleam_json", "gleam_stdlib"], otp_app = "gleam_community_colour", source = "hex", outer_checksum = "FDD6AC62C6EC8506C005949A4FCEF032038191D5EAAEC3C9A203CD53AE956ACA" },
@@ -21,6 +22,7 @@ packages = [
 
 [requirements]
 argv = { version = ">= 1.0.2 and < 2.0.0" }
+atomic_array = { version = ">= 1.0.0 and < 2.0.0" }
 gleam_community_ansi = { version = ">= 1.4.3 and < 2.0.0" }
 gleam_erlang = { version = ">= 0.34.0 and < 1.0.0" }
 gleam_otp = { version = ">= 0.16.1 and < 1.0.0" }
