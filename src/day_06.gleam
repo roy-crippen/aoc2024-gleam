@@ -71,26 +71,13 @@ fn to_next(g: Grid(Int), st: State) -> #(State, Status) {
   case grid_gle.move_pos(st.dir, st.pos, g.rows, g.cols) {
     Error(_) -> #(st, OutOfBounds)
     Ok(new_pos) -> {
-      let is_guard = { grid_gle.get(g, new_pos) |> utils.unwrap } == hash
-      case is_guard {
+      case { grid_gle.get(g, new_pos) |> utils.unwrap } == hash {
         True -> #(st, Guard)
         False -> #(State(..st, pos: new_pos), Running)
       }
     }
   }
 }
-
-// fn to_next(g: Grid(Int), st: State) -> #(State, Status) {
-//   let new_pos = grid_gle.move_pos_unsafe(st.dir, st.pos, g.cols)
-//   let is_inside = grid_gle.is_inside(new_pos, g.rows, g.cols)
-//   let is_guard =
-//     is_inside && { grid_gle.get(g, new_pos) |> utils.unwrap } == hash
-//   case is_inside, is_guard {
-//     True, True -> #(st, Guard)
-//     False, _ -> #(st, OutOfBounds)
-//     True, False -> #(State(..st, pos: new_pos), Running)
-//   }
-// }
 
 fn pos_dir_to_index(cols: Int, pos: Int, dir: Dir) {
   let dir_int = case dir {

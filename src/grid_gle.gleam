@@ -141,7 +141,8 @@ pub fn move_pos(
 ) -> Result(Int, Nil) {
   let max_col = cols - 1
   let max_row = rows - 1
-  use #(r, c) <- result.try(pos_to_rc(pos, rows, cols))
+  // let assert Ok(#(r, c)) = pos_to_rc(pos, rows, cols)
+  let #(r, c) = pos_to_rc_unsafe(pos, cols)
   case dir {
     N if r > 0 -> Ok(pos - cols)
     NW if r > 0 && c > 0 -> Ok(pos - cols - 1)
