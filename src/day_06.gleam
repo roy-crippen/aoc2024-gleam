@@ -1,8 +1,8 @@
-import bool_bit_vector_ata as bbv
+import bool_bit_vector as bbv
 import gleam/list
 import gleam/set
 import gleam/string
-import grid_gle.{type Dir, type Grid, E, N, S, W}
+import grid.{type Dir, type Grid, E, N, S, W}
 import utils.{Solution, read_file}
 
 type State {
@@ -20,13 +20,13 @@ fn parse(s: String) -> #(Grid(String), State) {
     string.trim(s)
     |> string.split("\n")
     |> list.map(fn(s) { string.to_graphemes(s) })
-    |> grid_gle.from_lists
+    |> grid.from_lists
     |> utils.unwrap
   let pos =
-    grid_gle.find_positions(g, fn(ch) { ch == "^" })
+    grid.find_positions(g, fn(ch) { ch == "^" })
     |> list.first
     |> utils.unwrap
-  #(g, State(pos, dir: grid_gle.N))
+  #(g, State(pos, dir: grid.N))
 }
 
 fn next_dir(dir: Dir) -> Dir {
@@ -61,10 +61,10 @@ fn traverse_part1_loop(
 }
 
 fn to_next(g: Grid(String), st: State) -> #(State, Status) {
-  case grid_gle.move_pos(st.dir, st.pos, g.rows, g.cols) {
+  case grid.move_pos(st.dir, st.pos, g.rows, g.cols) {
     Error(_) -> #(st, OutOfBounds)
     Ok(new_pos) -> {
-      case { grid_gle.get(g, new_pos) |> utils.unwrap } == "#" {
+      case { grid.get(g, new_pos) |> utils.unwrap } == "#" {
         True -> #(st, Guard)
         False -> #(State(..st, pos: new_pos), Running)
       }
@@ -81,7 +81,7 @@ fn pos_dir_to_index(cols: Int, pos: Int, dir: Dir) {
     _ -> panic as "invalid direction"
   }
 
-  let #(r, c) = grid_gle.pos_to_rc_unsafe(pos, cols)
+  let #(r, c) = grid.pos_to_rc_unsafe(pos, cols)
   { r * cols + c } * 4 + dir_int
 }
 
@@ -159,7 +159,7 @@ fn part1(s: String) -> Int {
   // io.debug("")
   let #(g, st) = parse(s)
   // io.debug(st)
-  // io.debug(grid_gle.show_str(g) |> list.each(io.debug))
+  // io.debug(grid.show_str(g) |> list.each(io.debug))
 
   traverse_part1(g, st, [st])
   |> list.map(fn(state) { state.pos })
@@ -192,7 +192,7 @@ fn part2(s: String) -> Int {
   //   list.window_by_2(new_route)
   //   |> list.map(fn(pair) {
   //     let #(prev_st, next_st) = pair
-  //     let grid = grid_gle.set(g, next_st.pos, hash) |> utils.unwrap
+  //     let grid = grid.set(g, next_st.pos, hash) |> utils.unwrap
   //     let visited = bbv.new_unsigned(num_buckets)
   //     #(grid, prev_st, next_st, visited)
   //   })
@@ -232,7 +232,7 @@ fn part2(s: String) -> Int {
   let #(_final_state, cnt) =
     list.fold(new_route, init_acc, fn(acc, next_st) {
       let #(prev_state, cnt) = acc
-      let grid = grid_gle.set(g, next_st.pos, "#") |> utils.unwrap
+      let grid = grid.set(g, next_st.pos, "#") |> utils.unwrap
       let has_cycle = is_cycle(grid, prev_state, bbv.new_unsigned(num_buckets))
       let updated_cnt = case has_cycle {
         True -> cnt + 1

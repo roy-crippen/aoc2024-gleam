@@ -1,4 +1,4 @@
-import bool_bit_vector_ata as bbv
+import bool_bit_vector as bbv
 import gleeunit/should
 
 pub fn get_and_set_test() {
