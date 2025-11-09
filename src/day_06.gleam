@@ -102,9 +102,7 @@ fn is_cycle_loop(
     Ok(True) -> True
     Ok(False) ->
       case status {
-        OutOfBounds -> {
-          False
-        }
+        OutOfBounds -> False
         Guard -> {
           let new_state = State(..state, dir: next_dir(state.dir))
           is_cycle_loop(g, visits, new_state, Running)
@@ -125,21 +123,6 @@ fn is_cycle_loop(
   }
 }
 
-// fn collect_results(
-//   acc: #(List(process.Subject(Bool)), Int),
-// ) -> #(List(process.Subject(Bool)), Int) {
-//   let #(subjects, cnt) = acc
-//   case subjects {
-//     [] -> acc
-//     [subject, ..rest] -> {
-//       case process.receive(subject, 1000) {
-//         Ok(True) -> collect_results(#(rest, cnt + 1))
-//         _ -> collect_results(#(rest, cnt))
-//       }
-//     }
-//   }
-// }
-
 const expected_part1 = 5329
 
 const expected_part2 = 2162
@@ -156,11 +139,7 @@ pub fn solution_day_06() -> utils.Solution {
 }
 
 fn part1(s: String) -> Int {
-  // io.debug("")
   let #(g, st) = parse(s)
-  // io.debug(st)
-  // io.debug(grid.show_str(g) |> list.each(io.debug))
-
   traverse_part1(g, st, [st])
   |> list.map(fn(state) { state.pos })
   |> set.from_list
@@ -171,7 +150,7 @@ fn part2(s: String) -> Int {
   let #(g, st) = parse(s)
   let route = traverse_part1(g, st, [st]) |> list.reverse
 
-  // remove any elements where pos has been used
+  // remove any elements duplicate where pos has been already used
   let rest = list.drop(route, 1)
   let used_set = set.new()
   let final_acc =
@@ -184,51 +163,12 @@ fn part2(s: String) -> Int {
     })
   let new_route = final_acc.0 |> list.reverse
 
-  // initialize bool bit vector to all false
+  // calc buckets fo bool bit vector
   let total_states = g.rows * g.cols * 4
   let num_buckets = { total_states + 63 } / 64
 
-  // let task_list =
-  //   list.window_by_2(new_route)
-  //   |> list.map(fn(pair) {
-  //     let #(prev_st, next_st) = pair
-  //     let grid = grid.set(g, next_st.pos, hash) |> utils.unwrap
-  //     let visited = bbv.new_unsigned(num_buckets)
-  //     #(grid, prev_st, next_st, visited)
-  //   })
-
-  // let rs =
-  //   list.map(task_list, fn(tup) {
-  //     let #(grid, prev_st, _next_st, visited) = tup
-  //     is_cycle(grid, prev_st, visited)
-  //   })
-  //   |> list.filter(fn(b) { b })
-  // list.each(rs, fn(pair) { io.debug(pair) })
-  // list.length(rs)
-
-  // let subjects =
-  //   // List(process.Subject(Bool)) =
-  //   list.map(task_list, fn(tup) {
-  //     let #(grid, prev_st, _next_st, visited) = tup
-  //     let subject = process.new_subject()
-  //     let _pid =
-  //       process.start(
-  //         fn() {
-  //           let b = is_cycle(grid, prev_st, visited)
-  //           process.send(subject, b)
-  //           subject
-  //         },
-  //         True,
-  //       )
-  //     subject
-  //   })
-
-  // let #(_, cnt) = collect_results(#(subjects, 0))
-  // io.debug(cnt)
-  // cnt
-
   // best serial solution
-  let init_acc = #(list.first(route) |> utils.unwrap, 0)
+  let init_acc = #(list.first(new_route) |> utils.unwrap, 0)
   let #(_final_state, cnt) =
     list.fold(new_route, init_acc, fn(acc, next_st) {
       let #(prev_state, cnt) = acc

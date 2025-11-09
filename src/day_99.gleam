@@ -22,5 +22,3 @@ fn part1(_s: String) -> Int {
 fn part2(_s: String) -> Int {
   42
 }
-
-pub const example_string = ""

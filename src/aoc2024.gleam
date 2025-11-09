@@ -1,10 +1,10 @@
 // import day_01.{solution_day_01}
 // import day_02.{solution_day_02}
 // import day_03.{solution_day_03}
-import day_04.{solution_day_04}
-
+// import day_04.{solution_day_04}
 // import day_05.{solution_day_05}
-import day_06.{solution_day_06}
+// import day_06.{solution_day_06}
+import day_07.{solution_day_07}
 import gleam/erlang.{Microsecond, system_time}
 import gleam/float
 import gleam/int
@@ -19,9 +19,10 @@ const sols = [
   // solution_day_01,
   // solution_day_02,
   // solution_day_03,
-  solution_day_04,
+  // solution_day_04,
   // solution_day_05,
-  solution_day_06,
+  // solution_day_06,
+  solution_day_07,
 ]
 
 pub fn main() {
